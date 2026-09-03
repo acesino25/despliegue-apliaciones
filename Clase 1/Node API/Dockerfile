@@ -10,7 +10,10 @@ RUN corepack enable pnpm
 # 2. Copiar tanto el package.json como el lockfile específico de pnpm
 COPY package.json pnpm-lock.yaml ./
 
-# 3. Ejecutar la instalación limpia (el equivalente a npm ci)
+# NUEVO: 3. Forzar a pnpm a guardar los archivos reales (no accesos directos)
+RUN echo "node-linker=hoisted" > .npmrc
+
+# 4. Ejecutar la instalación limpia
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 # Copiar el resto del código
@@ -19,21 +22,20 @@ COPY . .
 ############################################
 ############################################
 
-# --- ETAPA 2: Producción (Ligera y Segura) ---
-# Alpine es una distribución de Linux que pesa alrededor de 5MB
+# --- ETAPA 2: Producción (Entorno de ejecución ligero) ---
 FROM node:22-alpine
 WORKDIR /app
 
-# Copiar SOLO lo necesario de la etapa 'builder'
+# 1. Copiamos SOLO lo necesario desde la etapa 'builder'
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./
-COPY --from=builder /app/src ./src
 
-# Crear y usar un usuario sin privilegios por seguridad (evita ser root)
+# Copiamos el código fuente (ajusta 'src' según la estructura de tu proyecto)
+COPY --from=builder /app/index.js ./
+
+# 2. Configuración de seguridad y red
 USER node
-
-# Documentar el puerto que la app usará
 EXPOSE 3000
 
-# Comando de arranque final
-CMD ["pnpm", "start"]
+# 3. Arranque nativo (¡Sin pnpm!)
+CMD ["node", "index.js"]
