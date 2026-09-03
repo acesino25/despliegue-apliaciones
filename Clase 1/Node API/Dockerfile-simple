@@ -2,13 +2,23 @@
 FROM node:22
 WORKDIR /app
 
-# Se copian los archivos e instalan las dependencias
-COPY package*.json ./
-RUN pnpm ci
+# 1. Habilitar pnpm nativamente usando corepack
+RUN corepack enable pnpm
 
-# Se copia el resto del código fuente
+# 2. Copiar tanto el package.json como el lockfile específico de pnpm
+COPY package.json pnpm-lock.yaml ./
+
+# 3. Instalación segura bloqueando scripts automáticos
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# 4. Copiar el resto del código fuente
 COPY . .
 
-# Se expone el puerto y se define el arranque
+# 5. Usar el usuario sin privilegios que viene incluido en la imagen de Node
+USER node
+
+# 6. Exponer el puerto
 EXPOSE 3000
-CMD ["npm", "start"]
+
+# 7. Comando de arranque
+CMD ["pnpm", "start"]

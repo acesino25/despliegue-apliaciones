@@ -3,10 +3,17 @@
 # --- ETAPA 1: Builder (Pesada, con todas las herramientas) ---
 FROM node:22 AS builder
 WORKDIR /app
-# Copiar dependencias primero para aprovechar la caché de Docker
-COPY package*.json ./
-RUN pnpm ci
-# Copiar el resto del código y compilar (si aplica)
+
+# 1. Habilitar pnpm nativamente usando corepack
+RUN corepack enable pnpm
+
+# 2. Copiar tanto el package.json como el lockfile específico de pnpm
+COPY package.json pnpm-lock.yaml ./
+
+# 3. Ejecutar la instalación limpia (el equivalente a npm ci)
+RUN pnpm install --frozen-lockfile --ignore-scripts
+
+# Copiar el resto del código
 COPY . .
 
 ############################################
@@ -29,4 +36,4 @@ USER node
 EXPOSE 3000
 
 # Comando de arranque final
-CMD ["npm", "start"]
+CMD ["pnpm", "start"]
