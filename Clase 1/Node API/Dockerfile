@@ -1,3 +1,6 @@
+# SIMPLE STAGED
+
+
 # Se usa una imagen base completa (pesada)
 FROM node:22
 WORKDIR /app
