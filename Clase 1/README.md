@@ -12,7 +12,7 @@ Entonces, no corremos la aplicación, sino, la imagen que contiene a la aplicaci
 
 Habiendo instalado las dependencias necesarias, en consola correremos los siguientes comandos:
 
-1) ``docker build -t __app:v1__ .`` (**-t** es para darle un nombre a la imagen. Esto parados en el directorio del proyecto)
+1) ``docker build -t app:v1 .`` (**-t** es para darle un nombre a la imagen. Esto parados en el directorio del proyecto)
 2) ``docker images``    (Con esto listamos las imágenes existentes)
 3) ``docker run -d -p 3000:3000 --name app-nombre app:v1 ``
 
