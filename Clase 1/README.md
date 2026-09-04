@@ -1,3 +1,13 @@
+# Contenerizacion
+
+## Imágenes
+Es el empaquetado de la aplicación funcional. Con sus dependencias, módulos, etc.
+Usamos la palabra "imagen" porque es un algo **estático**.
+
+## Contenedor
+Entonces, no corremos la aplicación, sino, la imagen que contiene a la aplicación. Y para ello usamos contenedores, de forma que aislamos el entorno en el que funcionan.
+
+
 ## ¿Cómo trabajar con el Dockerfile en local?
 
 Habiendo instalado las dependencias necesarias, en consola correremos los siguientes comandos:
