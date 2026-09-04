@@ -1,4 +1,4 @@
-##¿Cómo trabajar con el Dockerfile en local?
+## ¿Cómo trabajar con el Dockerfile en local?
 
 Habiendo instalado las dependencias necesarias, en consola correremos los siguientes comandos:
 
@@ -10,14 +10,14 @@ Habiendo instalado las dependencias necesarias, en consola correremos los siguie
 **(-p)** conecta el puerto 3000 de la PC hacia el 3000 del contenedor.\
 **(--name)** creamos una etiqueta para referenciar a app:v1, de forma que sea más amigable al leer.\
 
-##¿Cómo debugueo errores?
+## ¿Cómo debugueo errores?
 
 Para ver la consola de errores usamos el siguiente comando:
 docker logs -f app-nombre
 
-##¿Cómo destruyo el contenedor?
+## ¿Cómo destruyo el contenedor?
 
 Ejecutando el siguiente comando:
-docker rm -f app-nombre
-(Usamos el nombre creado como etiqueta)
-(-f) para forzar la detención.
+``docker rm -f app-nombre``\
+(Usamos el nombre creado como etiqueta)\
+**(-f)** para forzar la detención.\
