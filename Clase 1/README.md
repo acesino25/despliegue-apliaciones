@@ -13,7 +13,8 @@ Habiendo instalado las dependencias necesarias, en consola correremos los siguie
 ## ¿Cómo debugueo errores?
 
 Para ver la consola de errores usamos el siguiente comando:
-docker logs -f app-nombre
+
+``docker logs -f app-nombre``
 
 ## ¿Cómo destruyo el contenedor?
 
