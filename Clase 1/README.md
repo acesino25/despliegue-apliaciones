@@ -2,13 +2,13 @@
 
 Habiendo instalado las dependencias necesarias, en consola correremos los siguientes comandos:
 
-1) ``docker build -t __app:v1__ **.**`` (**-t** es para darle un nombre a la imagen. Esto parados en el directorio del proyecto)
+1) ``docker build -t __app:v1__ .`` (**-t** es para darle un nombre a la imagen. Esto parados en el directorio del proyecto)
 2) ``docker images``    (Con esto listamos las imágenes existentes)
 3) ``docker run -d -p 3000:3000 --name app-nombre app:v1 ``
 
-**(-d)** lo corre en segundo plano *(detached)*
-**(-p)** conecta el puerto 3000 de la PC hacia el 3000 del contenedor.
-**(--name)** creamos una etiqueta para referenciar a app:v1, de forma que sea más amigable al leer.
+**(-d)** lo corre en segundo plano **(detached)**\
+**(-p)** conecta el puerto 3000 de la PC hacia el 3000 del contenedor.\
+**(--name)** creamos una etiqueta para referenciar a app:v1, de forma que sea más amigable al leer.\
 
 ##¿Cómo debugueo errores?
 
