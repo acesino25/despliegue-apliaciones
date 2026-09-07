@@ -2,19 +2,32 @@
 
 ## Imágenes
 Es el empaquetado de la aplicación funcional. Con sus dependencias, módulos, etc.
-Usamos la palabra "imagen" porque es un algo **estático**.
+Usamos la palabra "imagen" porque es un algo **estático**.\
 
 ## Contenedor
-Entonces, no corremos la aplicación, sino, la imagen que contiene a la aplicación. Y para ello usamos contenedores, de forma que aislamos el entorno en el que funcionan.
+Entonces, no corremos la aplicación, sino, la imagen que contiene a la aplicación. Y para ello usamos contenedores, de forma que aislamos el entorno en el que funcionan.\
+
+## Desplegar en local
+
+Esta opción es para probar localmente sin contenerizar aún. La existencia o inexistencia de los dockerfiles no influye en el despliegue para este caso.\
+
+Lo primero que haremos será asegurarnos de tener Node.js instalado\
+
+Tras ello utilizaremos la siguiente serie de comandos posicionándonos en el directorio raíz del proyecto que querramos desplegar. Para este caso necesitamos posicionarnos en la carpeta "Node API".\
+
+1) Vamos a instalar las dependencias necesarias ``pnpm install``\
+2) Corremos en local usando ``node index.js``\
+
+Si has hecho todo bien deberías ver que te dice que está corriendo en el puerto 3000\
 
 
 ## ¿Cómo trabajar con el Dockerfile en local?
 
-Habiendo instalado las dependencias necesarias, en consola correremos los siguientes comandos:
+Habiendo instalado las dependencias necesarias, en consola correremos los siguientes comandos:\
 
-1) ``docker build -t app:v1 .`` (**-t** es para darle un nombre a la imagen. Esto parados en el directorio del proyecto)
-2) ``docker images``    (Con esto listamos las imágenes existentes)
-3) ``docker run -d -p 3000:3000 --name app-nombre app:v1 ``
+1) ``docker build -t app:v1 .`` (**-t** es para darle un nombre a la imagen. Esto parados en el directorio del proyecto)\
+2) ``docker images``    (Con esto listamos las imágenes existentes)\
+3) ``docker run -d -p 3000:3000 --name app-nombre app:v1 ``\
 
 **(-d)** lo corre en segundo plano **(detached)**\
 **(-p)** conecta el puerto 3000 de la PC hacia el 3000 del contenedor.\
@@ -22,9 +35,9 @@ Habiendo instalado las dependencias necesarias, en consola correremos los siguie
 
 ## ¿Cómo debugueo errores?
 
-Para ver la consola de errores usamos el siguiente comando:
+Para ver la consola de errores usamos el siguiente comando:\
 
-``docker logs -f app-nombre``
+``docker logs -f app-nombre``\
 
 ## ¿Cómo destruyo el contenedor?
 
