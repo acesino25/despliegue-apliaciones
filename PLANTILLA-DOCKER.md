@@ -11,7 +11,7 @@ Además, tiene dos partes principales: 1) el builder, donde se compila. 2) produ
 ## BUILDER
 ------------
 
-FROM **lenguaje**:**version** AS builder    <--- Imagen base para construir en el lenguaje necesario (contiene Debian + herramientas necesarias para compilar en, por ejemplo, node)  
+``FROM **lenguaje**:**version** AS builder``    <--- Imagen base para construir en el lenguaje necesario (contiene Debian + herramientas necesarias para compilar en, por ejemplo, node)  
 WORKDIR /app                            <--- Definimos el directorio donde trabajaremos el proyecto
 
 COPY **archivos-de-configuracion** ./  
