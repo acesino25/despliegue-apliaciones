@@ -1,0 +1,30 @@
+# DOCKER COMPOSE PARA ENTORNOS LOCALES
+
+# Definimos la version de compose (para que sepa qué estándares usaremos para comunicarnos)
+version: '3.8'
+
+# Definimos los servicios (nginx + backend BD basado en sqlite + pocketbase)
+services:
+  # NINGX Service para servir las peticiones hacia la landing
+  web:
+    image: nginx:alpine #Definimos la version de alpine con las herramientas necesarias para nginx
+    ports:
+      - "8080:80" # El puerto que nginx expone es el 80, mapeamos el 8080
+    volumes:
+      # Mapeamos ./public
+      - ./public_html:/usr/share/nginx/html
+    depends_on:
+      - pb # Indicamos dependencia con pocketbase
+
+  # Pocketbase
+  pb:
+    image: elestio/pocketbase:latest
+    ports:
+      - "8090:8090"
+    volumes:
+      # Creamos la persistencia de los datos
+      - pocketbase_data:/pb/pb_data
+
+# Declaramos los volúmenes
+volumes:
+  pocketbase_data: #Dejamos vacío porque no deseamos alterar manualmente nada. Podríamos hacerlo si deseamos guardarlo en un disco externo.
