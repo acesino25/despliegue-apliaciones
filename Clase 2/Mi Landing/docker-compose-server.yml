@@ -1,0 +1,15 @@
+# Docker compose utilizado para desplegar en producción
+services:
+  web:
+    image: landing:v1  # Imagen definida a través de un Dockerfile
+    ports:
+      - "8080:80"       # Mapeamos puertos
+  pb:                 # Definimos el servicio de pocketbase, que es una imagen de un repo de imágenes
+    image: elestio/pocketbase:latest
+    ports:
+      - "8090:8090"
+    volumes:          # Definimos la persistencia de datos asociando un volumen con la data de la carpeta de la app que se generará
+        - pocketbase_data:/pb/pb_data
+# Definimos volumenes
+volumes:
+  pocketbase_data: # Dejamos vacío porque no vamos a configurar la redirección de almacenamiento a ningún otro lado, u otro valor personalizable.
