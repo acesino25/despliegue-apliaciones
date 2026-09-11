@@ -136,7 +136,49 @@ Vamos a la landing en localhost:8080 y revisamos si se carga correctamente el ej
 En este caso necesitaremos crear un Dockerfile para las aplicaciones que desarrollemos, de forma que crearemos una imagen,
 e implementaremos esa imagen dentro de docker-compose.yml. La diferencia es que en local nosotros creamos la imagen a través de docker-compose.yml, pero estamos haciendo mirror/espejo en tiempo real y si por accidente eliminamos la carpeta madre de donde se refleja, entonces, este cambio se refleja en la imagen.
 
+### 1 - Creamos el Dockerfile
 
 
+```
+# HTML y Js no necesitan en este caso compiladores, por lo que serviremos los archivos estáticamente con nginx
+FROM nginx:alpine
+COPY ./public_html /usr/share/nginx/html
+EXPOSE 80
+
+#Ejecutamos nginx de fondo
+CMD ["nginx", "-g", "daemon off;"]
+```
+
+
+### 2 - Creamos un nuevo docker-compose-servidor.yml
+
+```
+# Docker compose utilizado para desplegar en producción
+services:
+  web:
+    image: landing:v1  # Imagen definida a través de un Dockerfile
+    ports:
+      - "8080:80"       # Mapeamos puertos
+  pb:                 # Definimos el servicio de pocketbase, que es una imagen de un repo de imágenes
+    image: elestio/pocketbase:latest
+    ports:
+      - "8090:8090"
+    volumes:          # Definimos la persistencia de datos asociando un volumen con la data de la carpeta de la app que se generará
+        - pocketbase_data:/pb/pb_data
+# Definimos volumenes
+volumes:
+  pocketbase_data: # Dejamos vacío porque no vamos a configurar la redirección de almacenamiento a ningún otro lado, u otro valor personalizable.
+```
+
+La diferencia principal con este archivo es que usamos la imagen que creamos con el docker file.
+
+
+### 3 - Comandos para levantar los servicios
+
+``docker build -t landing:v1 .``
+
+``docker compose -f docker-compose-server.yml up -d``
+
+Y repetimos los pasos desde la configuración de pocketbase en adelante.
 
 
