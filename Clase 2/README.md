@@ -76,6 +76,61 @@ volumes:
   pocketbase_data: #Dejamos vacío porque no deseamos alterar manualmente nada. Podríamos hacerlo si deseamos guardarlo en un disco externo.
 ```
 
+
+### 2 - Comandos para crear las imágenes y contenerizar
+
+``docker compose up -d``
+
+Si necesitamos ver los contenedores creados:
+
+``docker ps -a``
+
+Si necesitas ver la consola de alguno:
+
+``docker logs -f nombre-contenedor``
+
+### 2 - Configurar pocketbase
+
+* 1 - Veremos los logs del contenedor de pocketbase:
+
+``docker logs -f milanding-pb-1``
+
+* 2 - Habrá una URL que nos permitirá crear un super usuario:
+
+```
+(!) Launch the URL below in the browser if it hasn't been open already to create your first superuser account:
+http://0.0.0.0:8090/_/#/pbinstall/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2xsZWN0aW9uSWQiOiJwYmNfMzE0MjYzNTgyMyIsImV4cCI6MTc4ODk1NTM2NywiaWQiOiI4ZjQxbm95Zm9lZW90d2wiLCJyZWZyZXNoYWJsZSI6ZmFsc2UsInR5cGUiOiJhdXRoIn0.wI619fS1lItS95uIzHU_jLLOQmFnRNSdNijyvTeVXrc
+(you can also create your first superuser by running: /usr/local/bin/pocketbase superuser upsert EMAIL PASS)
+```
+
+Nosotros la copiaremos y reemplazaremos los "o" con localhost:
+
+``http:/localhost:8090/_/[...]``
+
+Al completar lo del usuario podremos acceder al administrador de pocketbase a través de la siguiente url: [text](http:/localhost:8090/_/)
+
+### 3 - Configurar pocketbase
+
+![Colecciones](image.png)
+Creamos una nueva "Collection" llamada "alumnos". (Es lo mismo que decir tablas)
+
+![Filas](image-1.png)
+A lo que existe como plantilla agregaremos la columna "nombre" de tipo texto.
+
+![Permisos](image-2.png)
+Configuraremos los permisos de quiénes pueden acceder a ver la lista de alumnos
+
+![API Rules](image-3.png)
+Vamos a API Rules. Y quitamos el candado de "Superuser Only" y dejamos vacío. Para que de esa forma cualquiera pueda realizar la acción de SELECT o VER sin estar logueado.
+Guardamos los cambios.
+
+Podemos cargar una fila de ejemplo para tener datos para ver.
+
+### 4 - Revisar localhost:8080
+
+![Landing](image-4.png)
+Vamos a la landing en localhost:8080 y revisamos si se carga correctamente el ejemplo que hemos cargado.
+
 ## Compose  Servidor/Producción
 
 En este caso necesitaremos crear un Dockerfile para las aplicaciones que desarrollemos, de forma que crearemos una imagen,
