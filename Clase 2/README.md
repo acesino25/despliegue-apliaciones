@@ -89,7 +89,7 @@ Si necesitas ver la consola de alguno:
 
 ``docker logs -f nombre-contenedor``
 
-### 2 - Configurar pocketbase
+### 3 - Configurar pocketbase
 
 * 1 - Veremos los logs del contenedor de pocketbase:
 
@@ -109,7 +109,7 @@ Nosotros la copiaremos y reemplazaremos los "o" con localhost:
 
 Al completar lo del usuario podremos acceder al administrador de pocketbase a través de la siguiente url: [text](http:/localhost:8090/_/)
 
-### 3 - Configurar pocketbase
+### 4 - Configurar pocketbase
 
 ![Colecciones](image.png)
 Creamos una nueva "Collection" llamada "alumnos". (Es lo mismo que decir tablas)
@@ -126,7 +126,7 @@ Guardamos los cambios.
 
 Podemos cargar una fila de ejemplo para tener datos para ver.
 
-### 4 - Revisar localhost:8080
+### 5 - Revisar localhost:8080
 
 ![Landing](image-4.png)
 Vamos a la landing en localhost:8080 y revisamos si se carga correctamente el ejemplo que hemos cargado.
