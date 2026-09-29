@@ -1,0 +1,37 @@
+# Docker compose utilizado para desplegar en producción
+services:
+  api:
+    image: api-node:v1  # Imagen definida a través de un Dockerfile
+    restart: always
+    environment:
+      - PORT=3000
+      - PG_HOST=pg_db
+      - PG_PORT=5432
+      - PG_USER=el_admin
+      - PG_PASSWORD=despliegue2026*
+      - PG_DB=autos
+    depends_on:
+      - db
+  db:                 # Definimos el servicio PG, que es una imagen de un repo de imágenes
+    image: postgres:15-alpine
+    container_name: clase5_pg_db
+    restart: always
+    environment:
+      POSTGRES_USER: el_admin
+      POSTGRES_PASSWORD: despliegue2026*
+      POSTGRES_DB: autos
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+  nginx:
+    image: nginx:alpine
+    container_name: clase5_nginx
+    restart: always
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - api
+# Definimos volumenes
+volumes:
+  pg_data: # Dejamos vacío porque no vamos a configurar la redirección de almacenamiento a ningún otro lado, u otro valor personalizable.
