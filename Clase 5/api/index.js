@@ -1,11 +1,8 @@
-// Para funcione necesitas instalar express
-// 
+require('dotenv').config();
+const app = require('./app');
 
-const express = require('express')
-const app = express()
+const PORT = process.env.PORT || 3000;
 
-app.get('/api/hola/', (req, res) =>{
-    res.json({message: 'Hello world'});
-})
-
-app.listen(3000, () => console.log('Express corriendo en puerto 3000'))
+app.listen(PORT, () => {
+  console.log(`Servidor corriendo en el puerto ${PORT}`);
+});
