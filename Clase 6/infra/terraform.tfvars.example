@@ -1,0 +1,14 @@
+# Copiá este archivo a terraform.tfvars (o usá envs/*.tfvars con -var-file)
+# NO pongas tailscale_auth_key acá: exportala como variable de entorno
+#   PowerShell: $env:TF_VAR_tailscale_auth_key = "tskey-auth-..."
+#   Bash:       export TF_VAR_tailscale_auth_key="tskey-auth-..."
+
+region   = "us-east-1"
+proyecto = "mi-proyecto"
+# key_name = "tu_llave_aws"   # opcional
+
+servicios = {
+  app = {
+    # Todo lo demás es opcional (ver defaults en variables.tf)
+  }
+}

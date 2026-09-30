@@ -1,0 +1,16 @@
+#!/bin/bash
+set -euxo pipefail
+
+apt-get update -y
+apt-get install -y curl awscli
+%{ if instalar_docker ~}
+apt-get install -y docker.io docker-compose-v2
+systemctl enable --now docker
+usermod -aG docker ubuntu
+%{ endif ~}
+
+# Red privada Tailscale (WireGuard) + SSH por Tailscale
+curl -fsSL https://tailscale.com/install.sh | sh
+tailscale up --authkey=${tailscale_auth_key} --hostname=${hostname} --ssh
+
+${user_data_extra}

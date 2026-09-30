@@ -1,0 +1,57 @@
+# Despliegue de la Clase 6: GitHub Actions entra por el tunel de TailScale y actualiza el servidor.
+# GitHub solo lee workflows desde <raiz del repo>/.github/workflows.
+name: Deploy Clase 6
+
+on:
+  push:
+    branches: [main]
+    paths: ['Clase 6/**']   # solo si cambió algo de esta clase
+  workflow_dispatch:         # también se puede lanzar a mano desde la pestaña Actions
+
+# Nunca dos despliegues a la vez sobre el mismo servidor
+concurrency:
+  group: deploy-clase6
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  SERVIDOR: clase6-app   # nombre de la máquina en TailScale (proyecto-servicio)
+  DESTINO: clase6        # carpeta dentro de /home/ubuntu
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Unirse a la red de TailScale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Copiar los archivos al servidor
+        run: |
+          tar -C "Clase 6" --exclude=node_modules --exclude=infra --exclude=README.md -czf - . \
+            | ssh -o StrictHostKeyChecking=accept-new ubuntu@$SERVIDOR \
+              "mkdir -p $DESTINO && tar -xzf - -C $DESTINO"
+
+      - name: Crear la imagen y recrear los contenedores
+        run: |
+          ssh ubuntu@$SERVIDOR "cd $DESTINO \
+            && docker build -t api-node:v1 . \
+            && docker compose up -d --force-recreate api nginx \
+            && docker image prune -f"
+
+      - name: Comprobar que la API responde (health check)
+        run: |
+          ssh ubuntu@$SERVIDOR 'for i in $(seq 1 15); do
+            curl -fsS http://localhost/api/patentes > /dev/null && echo "OK: la API responde" && exit 0
+            echo "Intento $i/15: aún no responde"; sleep 4
+          done
+          cd '"$DESTINO"' && docker compose logs --tail 50 api
+          exit 1'

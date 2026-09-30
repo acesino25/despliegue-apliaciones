@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Patentes · Maniatic al Volante</title>
+  <style>
+    /* Tokens globales -> semánticos. Los componentes usan solo los semánticos. */
+    :root {
+      --space-xs: .25rem; --space-sm: .5rem; --space-md: 1rem;
+      --space-lg: 1.5rem; --space-xl: 2rem; --space-2xl: 3rem;
+
+      --color-surface: #f6f4ee;
+      --color-surface-raised: #ffffff;
+      --color-on-surface: #141414;
+      --color-on-surface-muted: #55524b;
+      --color-outline: #141414;
+      --color-action: #141414;
+      --color-on-action: #f6f4ee;
+      --color-action-hover: #c8321e;
+      --color-focus: #c8321e;
+      --color-error: #b3261e;
+      --color-success: #1b6e3a;
+      --logo-filter: none;
+      --logo-blend: multiply;
+
+      --radius-md: .5rem;
+      --font-body: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      --font-code: ui-monospace, "Cascadia Mono", Consolas, monospace;
+      --ease-standard: cubic-bezier(.4, 0, .2, 1);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --color-surface: #171717;
+        --color-surface-raised: #232323;
+        --color-on-surface: #ece9e1;
+        --color-on-surface-muted: #a9a59b;
+        --color-outline: #ece9e1;
+        --color-action: #ece9e1;
+        --color-on-action: #171717;
+        --color-action-hover: #ff6a4d;
+        --color-focus: #ff6a4d;
+        --color-error: #ff8a80;
+        --color-success: #6fd08c;
+        --logo-filter: invert(1);
+        --logo-blend: screen;
+      }
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--color-surface);
+      color: var(--color-on-surface);
+      font: 1rem/1.5 var(--font-body);
+    }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: var(--space-xl) var(--space-md) var(--space-2xl);
+      display: grid;
+      gap: var(--space-xl);
+    }
+    header { text-align: center; }
+    .logo {
+      width: 11rem; max-width: 60%; height: auto;
+      filter: var(--logo-filter);
+      /* el blend hace que el fondo blanco del PNG se funda con la superficie */
+      mix-blend-mode: var(--logo-blend);
+    }
+    h1 { margin: var(--space-sm) 0 0; font-size: 1.5rem; }
+    h2 { margin: 0 0 var(--space-md); font-size: 1.125rem; }
+
+    section {
+      background: var(--color-surface-raised);
+      border: 2px solid var(--color-outline);
+      border-radius: var(--radius-md);
+      padding: var(--space-lg);
+    }
+    label { display: block; font-weight: 600; margin-bottom: var(--space-xs); }
+    .hint { color: var(--color-on-surface-muted); font-size: .875rem; margin: var(--space-xs) 0 0; }
+    input {
+      width: 100%; min-height: 3rem;
+      padding: var(--space-sm) var(--space-md);
+      font: inherit; color: inherit;
+      background: var(--color-surface);
+      border: 2px solid var(--color-outline);
+      border-radius: var(--radius-md);
+    }
+    input[name="dominio"] { font-family: var(--font-code); text-transform: uppercase; letter-spacing: .05em; }
+    input[aria-invalid="true"] { border-color: var(--color-error); }
+    .field { margin-bottom: var(--space-md); }
+    .row { display: grid; gap: var(--space-md); }
+    @media (min-width: 34rem) { .row { grid-template-columns: 10rem 1fr; } }
+
+    button {
+      min-height: 3rem; padding: var(--space-sm) var(--space-lg);
+      font: inherit; font-weight: 700; cursor: pointer;
+      background: var(--color-action); color: var(--color-on-action);
+      border: 2px solid var(--color-action); border-radius: var(--radius-md);
+      transition: background-color 150ms var(--ease-standard), border-color 150ms var(--ease-standard);
+    }
+    button:hover:not(:disabled) { background: var(--color-action-hover); border-color: var(--color-action-hover); }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    :focus-visible { outline: 3px solid var(--color-focus); outline-offset: 2px; }
+
+    .status { min-height: 1.5rem; margin: var(--space-md) 0; font-weight: 600; }
+    .status[data-type="error"] { color: var(--color-error); }
+    .status[data-type="ok"] { color: var(--color-success); }
+
+    ul { list-style: none; margin: var(--space-md) 0 0; padding: 0; display: grid; gap: var(--space-sm); }
+    li {
+      display: grid; grid-template-columns: auto 1fr; gap: var(--space-md); align-items: baseline;
+      padding: var(--space-sm) var(--space-md);
+      border: 1px solid var(--color-outline); border-radius: var(--radius-md);
+    }
+    .dominio { font-family: var(--font-code); font-weight: 700; font-size: 1.125rem; letter-spacing: .05em; }
+    .desc { overflow-wrap: anywhere; }
+    .empty { color: var(--color-on-surface-muted); margin: var(--space-md) 0 0; }
+
+    @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <img class="logo" src="resources/img/logo-manitatico.png" alt="Maniatic al Volante">
+      <h1>Patentes</h1>
+    </header>
+
+    <section aria-labelledby="buscar-titulo">
+      <h2 id="buscar-titulo">Buscar patente</h2>
+      <label for="busqueda">Dominio o descripción</label>
+      <input id="busqueda" type="search" placeholder="Ej: AB123CD" autocomplete="off">
+      <p id="resumen" class="hint" aria-live="polite"></p>
+      <ul id="lista" aria-label="Patentes cargadas"></ul>
+      <p id="vacio" class="empty" hidden></p>
+    </section>
+
+    <section aria-labelledby="cargar-titulo">
+      <h2 id="cargar-titulo">Cargar patente</h2>
+      <form id="form-carga" novalidate>
+        <div class="row">
+          <div class="field">
+            <label for="dominio">Dominio</label>
+            <input id="dominio" name="dominio" required maxlength="10" autocomplete="off"
+                   placeholder="AB123CD" aria-describedby="dominio-hint">
+          </div>
+          <div class="field">
+            <label for="descripcion">Descripción</label>
+            <input id="descripcion" name="descripcion" required autocomplete="off"
+                   placeholder="Ej: Ford Falcon 1972 verde">
+          </div>
+        </div>
+        <p id="dominio-hint" class="hint">Formatos válidos: ABC123 o AB123CD.</p>
+        <p id="estado" class="status" role="status" aria-live="polite"></p>
+        <button type="submit" id="guardar">Guardar patente</button>
+      </form>
+    </section>
+  </main>
+  <script src="main.js"></script>
+</body>
+</html>
