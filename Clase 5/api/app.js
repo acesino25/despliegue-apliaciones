@@ -1,5 +1,5 @@
 const express = require('express');
-const patentesRoutes = require('./routes/patente.routes');
+const patentesRoutes = require('./routes/patentes.routes');
 
 const app = express();
 
