@@ -94,19 +94,40 @@ Como en la Clase 4, el servidor se unirá a nuestra red segura y solo entraremos
 * Entra a https://login.tailscale.com/admin/settings/keys
 * Elige **Generate auth key**
 * Marca la opción **Ephemeral** (token efímero) y, si te la ofrece, **Reusable** para poder crear más de un servicio con el mismo token
+* En **Tags** elige ``tag:servidor`` (se crea en el paso 3.1, hazlo antes)
 * Copia el valor que empieza con ``tskey-auth-...``
 
-Guardaremos el token como variable de entorno **de tu consola**, y no dentro de ningún archivo:
+No lo guardes dentro de ningún archivo. Terraform te pedirá el valor (``var.tailscale_auth_key``) cada vez que ejecutes ``plan`` o ``apply``: solo pégalo cuando te lo solicite.
 
-PowerShell (Windows):
+#### 3.1) Permisos para que GitHub Actions entre al servidor
 
-``$env:TF_VAR_tailscale_auth_key = "tskey-auth-XXXXXXXX"``
+El despliegue ya no lo hacemos a mano: lo hará **GitHub Actions** (paso 9). Para eso GitHub debe poder entrar por TailScale al servidor. Se hace **antes** de generar el token:
 
-Bash (Linux / Mac / Git Bash):
+1) En https://login.tailscale.com/admin/acls/file agregamos dentro del JSON (si ya existe ``tagOwners`` o ``ssh``, agregamos las líneas dentro de los que ya hay):
 
-``export TF_VAR_tailscale_auth_key="tskey-auth-XXXXXXXX"``
+```
+"tagOwners": {
+  "tag:servidor": ["autogroup:admin"],
+  "tag:ci":       ["autogroup:admin"]
+},
 
-**NOTA:** __Esta variable vive solo mientras la consola esté abierta. Si abres una consola nueva, debes volver a ponerla.__
+"ssh": [
+  {
+    "action": "accept",
+    "src":    ["autogroup:member", "tag:ci"],
+    "dst":    ["tag:servidor"],
+    "users":  ["ubuntu"]
+  }
+]
+```
+
+Dice: *tú y GitHub (``tag:ci``) pueden entrar por SSH al servidor (``tag:servidor``), solo como ``ubuntu``.* No borres la regla ``acls`` que viene por defecto.
+
+2) Creamos la credencial para GitHub en https://login.tailscale.com/admin/settings/oauth: **Generate OAuth client**, permiso **Auth Keys** en **Write**, tag ``tag:ci``. Copia el **Client ID** y el **Client secret** (se muestra una sola vez).
+
+3) En tu repositorio de GitHub: **Settings > Secrets and variables > Actions > New repository secret**. Creamos dos: ``TS_OAUTH_CLIENT_ID`` y ``TS_OAUTH_SECRET``.
+
+**NOTA:** __Los nombres de los menús de TailScale pueden cambiar. Lo importante es: una etiqueta para el servidor, una para GitHub y una regla SSH que los una. Si ya hiciste esto en la Clase 6, no hace falta repetirlo.__
 
 ### 4) Entender cómo se compone el archivo terraform
 
@@ -347,7 +368,7 @@ Si te aparece un error, léelo completo: suele indicar el archivo y la línea. L
 | Error | Causa |
 |---|---|
 | ``No valid credential sources found`` | No hiciste ``aws configure`` (paso 2) |
-| ``No value for required variable ... tailscale_auth_key`` | Falta exportar la variable en esta consola (paso 3) |
+| ``No value for required variable ... tailscale_auth_key`` | No pegaste el token cuando terraform lo pidió (paso 3) |
 | ``Invalid value for variable ... puertos_publicos`` | Pusiste el puerto 22, que está prohibido a propósito |
 | ``No configuration files`` | No estás dentro de la carpeta ``infra`` |
 
@@ -410,37 +431,35 @@ Para volver a nuestra computadora:
 
 **Esperamos** que se quede colgado y termine con ``Connection timed out``. Eso significa que el puerto 22 está cerrado al mundo, que es lo que queríamos.
 
-### 9) Desplegamos la aplicación en el servidor
+### 9) Desplegamos la aplicación con GitHub Actions y el registro de imágenes de GitHub
 
-Ya tenemos el servidor con docker. Ahora llevaremos la aplicación (ver la nota de programación al final para saber qué contiene). Desde la carpeta ``Clase 5`` de tu computadora:
+Ya tenemos el servidor con docker. **No copiamos archivos ni construimos la imagen a mano:** cada ``git push`` hace que GitHub Actions lo haga por nosotros (ver la nota de programación al final para saber qué contiene la aplicación).
 
-1) Creamos la carpeta destino en el servidor:
+El workflow está en ``.github/workflows/deploy-clase5.yml`` (en la raíz del repositorio, único lugar donde GitHub lo lee) y tiene dos trabajos:
 
-``ssh ubuntu@clase5-app "mkdir -p ~/clase5"``
+1) **build**: construye la imagen con el ``Dockerfile`` y la sube a **GHCR** (``ghcr.io``, el registro de imágenes de GitHub) como ``ghcr.io/<tu-usuario>/clase5-api:<commit>`` y ``:latest``. Usa el ``GITHUB_TOKEN`` que GitHub entrega solo, no hace falta crear ningún secreto.
+2) **deploy**: entra al servidor por TailScale, copia solo ``docker-compose.yml``, ``nginx.conf`` y ``static`` (la API ya viaja dentro de la imagen), le indica a compose qué imagen usar (archivo ``.env`` con ``API_IMAGE``), hace ``docker compose pull`` y recrea ``api`` y ``nginx``. Termina con un health check a ``/api/patentes``.
 
-2) Copiamos los archivos necesarios (sin ``node_modules``, que se instala dentro de la imagen):
+Para lanzarlo:
 
-``scp -r api static Dockerfile .dockerignore docker-compose.yml nginx.conf package.json pnpm-lock.yaml ubuntu@clase5-app:~/clase5/``
+* Revisa que hayas hecho el paso 3.1 (etiquetas, regla SSH y los dos secretos).
+* Sube los cambios con ``git push`` a la rama ``main``. O lánzalo a mano: pestaña **Actions > Deploy Clase 5 > Run workflow**.
 
-3) Entramos al servidor:
+**Esperamos** que las dos etapas terminen en verde y que el último paso muestre ``OK: la API responde``. En tu perfil de GitHub, pestaña **Packages**, debe aparecer ``clase5-api``.
+
+**NOTA:** __Si creas el servidor con ``terraform apply`` después de haber subido el código, lanza el workflow a mano: el ``push`` solo se dispara cuando cambian archivos de la Clase 5.__
+
+Entramos al servidor para comprobar que corre la imagen del registro (y no una construida allí):
 
 ``ssh ubuntu@clase5-app``
 
 ``cd ~/clase5``
 
-4) Creamos la imagen, tal como en la Clase 1 y 2:
+``docker compose images``
 
-``docker build -t api-node:v1 .``
+**Esperamos** ver en la columna *Repository* ``ghcr.io/<tu-usuario>/clase5-api``.
 
-**Esperamos** ver al final ``naming to docker.io/library/api-node:v1``.
-
-5) Levantamos los servicios:
-
-``docker compose up -d``
-
-**Esperamos** ver ``Container clase5_pg_db Started``, ``Started`` para api y ``Container clase5_nginx Started``.
-
-6) Comprobamos los contenedores:
+Comprobamos los contenedores:
 
 ``docker ps -a``
 
@@ -501,6 +520,7 @@ Cada alumno deberá **aplicar terraform en su computadora**. Para dar la tarea p
 2) Captura del ``terraform plan`` mostrando ``Plan: 3 to add, 0 to change, 0 to destroy.``
 3) Captura del ``terraform apply`` terminado con ``Apply complete!`` y los outputs.
 4) Captura de ``tailscale status`` con tu servidor ``clase5-app`` en la lista.
+4.1) Captura de la ejecución de GitHub Actions en verde (``build`` y ``deploy``) con el ``OK: la API responde``, y de la pestaña **Packages** con ``clase5-api``.
 5) Captura del navegador con la web funcionando, con al menos una patente cargada.
 6) **Modificación:** agrega un segundo servicio en tu archivo ``.tfvars`` (con otro nombre y al menos un puerto público distinto), ejecuta ``plan`` y ``apply`` y entrega la captura donde se vea que el primer servicio no fue modificado.
 7) Captura del ``terraform destroy`` terminado con ``Destroy complete!``.
@@ -541,7 +561,7 @@ Los dominios válidos son ``ABC123`` o ``AB123CD``. La tabla ``patentes`` se cre
 
 **El docker-compose de esta clase** tiene tres servicios, igual que la lógica de la Clase 2:
 
-* ``api``: la imagen ``api-node:v1`` que creamos con el Dockerfile (es un **multi staged**, ver definiciones).
+* ``api``: la imagen creada con el Dockerfile (es un **multi staged**, ver definiciones). En el servidor es la que GitHub Actions publica en GHCR (variable ``API_IMAGE``); en local, si no existe esa variable, usa ``api-node:v1``.
 * ``db``: postgres, con un volumen ``pg_data`` para que los datos persistan.
 * ``nginx``: recibe todo en el puerto 80. Si la ruta empieza con ``/api/`` la manda a la api; el resto lo sirve desde la carpeta ``static``.
 
@@ -593,6 +613,10 @@ y luego abrimos ``http://localhost``.
 
 **ELASTIC IP** Una IP pública fija que se asigna al servidor. Si no la usamos, la IP cambia al apagar y encender.
 
+**GITHUB ACTIONS** Servicio de GitHub que ejecuta pasos automáticos cuando ocurre algo en el repositorio (por ejemplo un ``git push``). Aquí construye la imagen y actualiza el servidor.
+
+**GHCR (GitHub Container Registry)** El registro de imágenes de GitHub (``ghcr.io``). Es como Docker Hub, pero integrado con tu repositorio: el workflow sube la imagen y el servidor la descarga con ``docker compose pull``.
+
 **USER DATA** Script que el servidor ejecuta una sola vez, la primera vez que arranca. Lo usamos para instalar docker y TailScale.
 
 **TAILSCALE** Red segura que enlaza computadoras como una RED LAN virtual, usando el protocolo WireGuard. Ver Clase 4.
@@ -613,7 +637,7 @@ y luego abrimos ``http://localhost``.
 
 **VOLUMEN** Espacio donde el contenedor guarda datos que deben sobrevivir aunque el contenedor se elimine.
 
-**VARIABLE DE ENTORNO** Valor que se le pasa a un programa desde fuera de su código. La usamos para el token de TailScale (``TF_VAR_...``) y para la conexión de la API a postgres.
+**VARIABLE DE ENTORNO** Valor que se le pasa a un programa desde fuera de su código. La usamos para la conexión de la API a postgres.
 
 **API** Servicio que recibe pedidos, consulta la base de datos y devuelve información al frontend. Ver BACKEND y FRONTEND en la Clase 2.
 

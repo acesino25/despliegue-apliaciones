@@ -5,8 +5,10 @@ region   = "us-east-1"
 servicios = {
   # Servidor con nginx + api + web + postgres (docker-compose de Clase 5)
   app = {
-    instance_type = "t2.micro"
+    instance_type = "t3.micro"
     volumen_gb    = 20
+    puertos_publicos = [80, 443]
+    cidr_permitidos  = ["0.0.0.0/0"]
   }
 
   # Ejemplo: segundo servicio con sus propios puertos y sin IP fija.

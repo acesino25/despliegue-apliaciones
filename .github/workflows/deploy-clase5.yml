@@ -1,0 +1,105 @@
+# Despliegue de la Clase 5: GitHub Actions crea la imagen, la sube al registro de GitHub (GHCR)
+# y el servidor la descarga. Ya no se copia ni se construye nada a mano.
+# GitHub solo lee workflows desde <raiz del repo>/.github/workflows.
+name: Deploy Clase 5
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Clase 5/**'
+      - '.github/workflows/deploy-clase5.yml'
+  workflow_dispatch:         # también se puede lanzar a mano desde la pestaña Actions
+
+# Nunca dos despliegues a la vez sobre el mismo servidor
+concurrency:
+  group: deploy-clase5
+  cancel-in-progress: false
+
+env:
+  SERVIDOR: clase5-app   # nombre de la máquina en TailScale (proyecto-servicio)
+  DESTINO: clase5        # carpeta dentro de /home/ubuntu
+
+jobs:
+  # ---------- 1) Construir la imagen y subirla a GHCR ----------
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write    # necesario para publicar en ghcr.io con el GITHUB_TOKEN
+    outputs:
+      imagen: ${{ steps.nombre.outputs.imagen }}
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Calcular el nombre de la imagen (GHCR exige minúsculas)
+        id: nombre
+        run: echo "imagen=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/clase5-api:${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
+
+      - name: Iniciar sesión en GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Construir y subir la imagen
+        uses: docker/build-push-action@v6
+        with:
+          context: Clase 5
+          push: true
+          tags: |
+            ${{ steps.nombre.outputs.imagen }}
+            ghcr.io/${{ github.repository_owner }}/clase5-api:latest
+
+  # ---------- 2) Actualizar el servidor ----------
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Unirse a la red de TailScale
+        uses: tailscale/github-action@v3
+        with:
+          oauth-client-id: ${{ secrets.TS_OAUTH_CLIENT_ID }}
+          oauth-secret: ${{ secrets.TS_OAUTH_SECRET }}
+          tags: tag:ci
+
+      - name: Copiar docker-compose, nginx y la web (la API viaja dentro de la imagen)
+        run: |
+          tar -C "Clase 5" -czf - docker-compose.yml nginx.conf static \
+            | ssh -o StrictHostKeyChecking=accept-new ubuntu@$SERVIDOR \
+              "mkdir -p $DESTINO && tar -xzf - -C $DESTINO"
+
+      - name: Indicar qué imagen debe usar docker compose
+        run: |
+          ssh ubuntu@$SERVIDOR "echo 'API_IMAGE=${{ needs.build.outputs.imagen }}' > $DESTINO/.env"
+
+      - name: Iniciar sesión en GHCR desde el servidor
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "$TOKEN" | ssh ubuntu@$SERVIDOR \
+            "docker login ghcr.io -u ${{ github.actor }} --password-stdin"
+
+      - name: Descargar la imagen y recrear los contenedores
+        run: |
+          ssh ubuntu@$SERVIDOR "cd $DESTINO \
+            && docker compose pull api \
+            && docker compose up -d --force-recreate api nginx \
+            && docker image prune -f"
+
+      - name: Comprobar que la API responde (health check)
+        run: |
+          ssh ubuntu@$SERVIDOR 'for i in $(seq 1 15); do
+            curl -fsS http://localhost/api/patentes > /dev/null && echo "OK: la API responde" && exit 0
+            echo "Intento $i/15: aún no responde"; sleep 4
+          done
+          cd '"$DESTINO"' && docker compose logs --tail 50 api
+          exit 1'

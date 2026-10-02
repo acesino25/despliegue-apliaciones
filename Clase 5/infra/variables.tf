@@ -21,7 +21,7 @@ variable "tags" {
 }
 
 variable "tailscale_auth_key" {
-  description = "Token efímero de Tailscale (tskey-auth-...). Pasar por TF_VAR_tailscale_auth_key, no en un archivo"
+  description = "Token efímero de Tailscale (tskey-auth-...). Terraform lo pide al ejecutar plan/apply; no lo guardes en un archivo"
   type        = string
   sensitive   = true
 }
@@ -46,13 +46,14 @@ variable "modo_prueba" {
 
 variable "servicios" {
   description = <<-EOT
+    Lo mejor es ejecutar un archivo .tfvars terraform plan -var-file=envs/clase5.tfvars
     Mapa de servicios a levantar. La clave es el nombre del servicio y cada
     uno recibe su propia EC2 + Security Group (+ IP elástica opcional).
     Agregar una entrada = un servicio nuevo; borrarla = destruirlo.
   EOT
 
   type = map(object({
-    instance_type    = optional(string, "t2.micro")
+    instance_type    = optional(string, "t3.micro")
     volumen_gb       = optional(number, 20)
     puertos_publicos = optional(list(number), [80, 443]) # SSH nunca se abre: va por Tailscale
     cidr_permitidos  = optional(list(string), ["0.0.0.0/0"])

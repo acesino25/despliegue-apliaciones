@@ -1,14 +1,25 @@
 # Copiá este archivo a terraform.tfvars (o usá envs/*.tfvars con -var-file)
-# NO pongas tailscale_auth_key acá: exportala como variable de entorno
-#   PowerShell: $env:TF_VAR_tailscale_auth_key = "tskey-auth-..."
-#   Bash:       export TF_VAR_tailscale_auth_key="tskey-auth-..."
+# NO pongas tailscale_auth_key acá: terraform te la pedirá al ejecutar plan/apply
 
 region   = "us-east-1"
 proyecto = "mi-proyecto"
 # key_name = "tu_llave_aws"   # opcional
 
+# Cada entrada de "servicios" es un servidor (EC2 + Security Group).
+# La clave es el nombre (minúsculas, números y guiones). Borrar la entrada lo destruye.
 servicios = {
-  app = {
-    # Todo lo demás es opcional (ver defaults en variables.tf)
-  }
+  # Mínimo: todo lo demás toma los defaults de variables.tf
+  app = {}
+
+  # Ejemplo completo con todos los campos opcionales
+  # metricas = {
+  #   instance_type    = "t3.micro"                  # default: t3.micro
+  #   volumen_gb       = 30                          # default: 20
+  #   puertos_publicos = [80, 443, 9090]             # default: [80, 443] (SSH nunca se abre: va por Tailscale)
+  #   cidr_permitidos  = ["203.0.113.0/24"]          # default: ["0.0.0.0/0"]
+  #   ip_elastica      = false                       # default: true
+  #   instalar_docker  = true                        # default: true
+  #   user_data_extra  = "docker run -d -p 9090:9090 prom/prometheus"
+  #   tags             = { entorno = "dev" }
+  # }
 }

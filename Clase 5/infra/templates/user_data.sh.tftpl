@@ -11,6 +11,8 @@ usermod -aG docker ubuntu
 
 # Red privada Tailscale (WireGuard) + SSH por Tailscale
 curl -fsSL https://tailscale.com/install.sh | sh
-tailscale up --authkey=${tailscale_auth_key} --hostname=${hostname} --ssh
+set +x # que el token no quede escrito en el log de arranque
+tailscale up --authkey="${tailscale_auth_key}" --hostname="${hostname}" --ssh
+set -x
 
 ${user_data_extra}

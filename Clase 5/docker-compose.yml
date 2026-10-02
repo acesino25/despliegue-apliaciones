@@ -1,7 +1,9 @@
 # Docker compose utilizado para desplegar en producción
 services:
   api:
-    image: api-node:v1  # Imagen definida a través de un Dockerfile
+    # En el servidor, GitHub Actions escribe API_IMAGE (ghcr.io/...) en el archivo .env.
+    # En local no existe, así que usa la imagen que creamos a mano con el Dockerfile.
+    image: ${API_IMAGE:-api-node:v1}
     restart: always
     environment:
       - PORT=3000
