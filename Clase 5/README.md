@@ -87,21 +87,13 @@ Para comprobar que funciona:
 
 Deberías ver un JSON con tu "Account" (número de cuenta) y tu "Arn". Si ves un error de credenciales, repite ``aws configure``.
 
-### 3) Generar el token de TailScale
+### 3) Configurar TailScale (etiquetas, permisos y token)
 
-Como en la Clase 4, el servidor se unirá a nuestra red segura y solo entraremos a él por ahí. Para ello necesita un token.
+Como en la Clase 4, el servidor se unirá a nuestra red segura y solo entraremos a él por ahí. Pero ahora el despliegue no lo hacemos a mano: lo hará **GitHub Actions** (paso 9), y para eso GitHub también debe poder entrar por TailScale al servidor.
 
-* Entra a https://login.tailscale.com/admin/settings/keys
-* Elige **Generate auth key**
-* Marca la opción **Ephemeral** (token efímero) y, si te la ofrece, **Reusable** para poder crear más de un servicio con el mismo token
-* En **Tags** elige ``tag:servidor`` (se crea en el paso 3.1, hazlo antes)
-* Copia el valor que empieza con ``tskey-auth-...``
+**IMPORTANTE:** __Los pasos 3.1, 3.2 y 3.3 se hacen **en este orden**. Si el servidor nace sin la etiqueta ``tag:servidor``, las reglas de acceso no le aplican y GitHub no podrá entrar. Si ya pasó, tiene arreglo (ver paso 9.1), pero es más cómodo hacerlo bien desde el principio.__
 
-No lo guardes dentro de ningún archivo. Terraform te pedirá el valor (``var.tailscale_auth_key``) cada vez que ejecutes ``plan`` o ``apply``: solo pégalo cuando te lo solicite.
-
-#### 3.1) Permisos para que GitHub Actions entre al servidor
-
-El despliegue ya no lo hacemos a mano: lo hará **GitHub Actions** (paso 9). Para eso GitHub debe poder entrar por TailScale al servidor. Se hace **antes** de generar el token:
+#### 3.1) Etiquetas y permisos SSH
 
 1) En https://login.tailscale.com/admin/acls/file agregamos dentro del JSON (si ya existe ``tagOwners`` o ``ssh``, agregamos las líneas dentro de los que ya hay):
 
@@ -123,9 +115,23 @@ El despliegue ya no lo hacemos a mano: lo hará **GitHub Actions** (paso 9). Par
 
 Dice: *tú y GitHub (``tag:ci``) pueden entrar por SSH al servidor (``tag:servidor``), solo como ``ubuntu``.* No borres la regla ``acls`` que viene por defecto.
 
-2) Creamos la credencial para GitHub en https://login.tailscale.com/admin/settings/oauth: **Generate OAuth client**, permiso **Auth Keys** en **Write**, tag ``tag:ci``. Copia el **Client ID** y el **Client secret** (se muestra una sola vez).
+2) **Guardamos** y comprobamos que el panel no muestre errores. Los bloques ``tagOwners`` y ``ssh`` van en el nivel principal del JSON (no dentro de ``acls``).
 
-3) En tu repositorio de GitHub: **Settings > Secrets and variables > Actions > New repository secret**. Creamos dos: ``TS_OAUTH_CLIENT_ID`` y ``TS_OAUTH_SECRET``.
+#### 3.2) Credencial para GitHub (OAuth client) y secretos
+
+1) En https://login.tailscale.com/admin/settings/oauth: **Generate OAuth client**, permiso **Auth Keys** en **Write**, tag ``tag:ci``. Copia el **Client ID** y el **Client secret** (se muestra una sola vez).
+
+2) En tu repositorio de GitHub: **Settings > Secrets and variables > Actions > New repository secret**. Creamos dos: ``TS_OAUTH_CLIENT_ID`` y ``TS_OAUTH_SECRET``.
+
+#### 3.3) Token para el servidor (con la etiqueta)
+
+* Entra a https://login.tailscale.com/admin/settings/keys
+* Elige **Generate auth key**
+* Marca la opción **Ephemeral** (token efímero) y, si te la ofrece, **Reusable** para poder crear más de un servicio con el mismo token
+* En **Tags** elige ``tag:servidor``. **No lo dejes vacío**: es el error más común de esta clase.
+* Copia el valor que empieza con ``tskey-auth-...``
+
+No lo guardes dentro de ningún archivo. Terraform te pedirá el valor (``var.tailscale_auth_key``) cada vez que ejecutes ``plan`` o ``apply``: solo pégalo cuando te lo solicite.
 
 **NOTA:** __Los nombres de los menús de TailScale pueden cambiar. Lo importante es: una etiqueta para el servidor, una para GitHub y una regla SSH que los una. Si ya hiciste esto en la Clase 6, no hace falta repetirlo.__
 
@@ -371,6 +377,7 @@ Si te aparece un error, léelo completo: suele indicar el archivo y la línea. L
 | ``No value for required variable ... tailscale_auth_key`` | No pegaste el token cuando terraform lo pidió (paso 3) |
 | ``Invalid value for variable ... puertos_publicos`` | Pusiste el puerto 22, que está prohibido a propósito |
 | ``No configuration files`` | No estás dentro de la carpeta ``infra`` |
+| En Actions: ``tailnet policy does not permit you to SSH to this node`` | El servidor no tiene ``tag:servidor`` o la regla ``ssh`` está mal (paso 9.1) |
 
 ### 7) Creamos la infraestructura (apply)
 
@@ -411,6 +418,8 @@ El servidor tarda un par de minutos más en ejecutar el script de arranque. Para
 
 Deberías ver en la lista una máquina llamada ``clase5-app``. También aparece en https://login.tailscale.com/admin/machines. Tu computadora también debe tener TailScale instalado y conectado.
 
+**Verificación clave (no te la saltes):** en https://login.tailscale.com/admin/machines abre ``clase5-app``. Debe mostrar la etiqueta ``tag:servidor``. Si en cambio aparece como una máquina de tu usuario (tu correo en *Managed by*) y sin etiquetas, el token se generó sin tag: GitHub Actions no podrá entrar. Ve al paso 9.1 **antes** de seguir.
+
 Entramos por SSH usando el nombre de TailScale (no la IP pública):
 
 ``ssh ubuntu@clase5-app``
@@ -442,7 +451,7 @@ El workflow está en ``.github/workflows/deploy-clase5.yml`` (en la raíz del re
 
 Para lanzarlo:
 
-* Revisa que hayas hecho el paso 3.1 (etiquetas, regla SSH y los dos secretos).
+* Revisa que hayas hecho el paso 3 completo (etiquetas, regla SSH, los dos secretos) y que ``clase5-app`` tenga ``tag:servidor`` (paso 8).
 * Sube los cambios con ``git push`` a la rama ``main``. O lánzalo a mano: pestaña **Actions > Deploy Clase 5 > Run workflow**.
 
 **Esperamos** que las dos etapas terminen en verde y que el último paso muestre ``OK: la API responde``. En tu perfil de GitHub, pestaña **Packages**, debe aparecer ``clase5-api``.
@@ -468,6 +477,32 @@ Deben aparecer tres contenedores en estado ``Up``. Si alguno aparece como ``Rest
 ``docker logs -f nombre-contenedor``
 
 Si la api dice ``DB no disponible (intento 1/10)`` es normal durante unos segundos, porque reintenta hasta que la base de datos esté lista.
+
+### 9.1) Si GitHub Actions falla al conectarse por SSH (solo si te pasa)
+
+**Cómo reconocerlo:** el paso *Copiar docker-compose, nginx y la web* termina en rojo con:
+
+```
+tailscale: tailnet policy does not permit you to SSH to this node
+Connection closed by 100.x.x.x port 22
+Error: Process completed with exit code 255.
+```
+
+Significa que GitHub **sí** entró a la red, pero TailScale no le permite el SSH al servidor. Casi siempre es porque ``clase5-app`` no tiene ``tag:servidor`` (el token del paso 3.3 se generó sin tag). Pasos para resolverlo:
+
+1) En https://login.tailscale.com/admin/machines abre ``clase5-app``. Si no muestra ``tag:servidor`` (aparece tu correo en *Managed by*), continúa. Si ya lo tiene, salta al punto 5.
+2) Comprueba que la ACL (paso 3.1) tenga ``tag:servidor`` y ``tag:ci`` en ``tagOwners``. Sin eso el siguiente comando falla.
+3) Desde tu computadora, etiqueta la máquina:
+
+``ssh ubuntu@clase5-app "sudo tailscale up --advertise-tags=tag:servidor --ssh --hostname=clase5-app"``
+
+Hay que repetir ``--ssh`` y ``--hostname`` porque ``tailscale up`` exige reindicar los flags que no son los predeterminados. Tu sesión SSH puede cortarse: es normal.
+
+4) Recarga la ficha de la máquina y **esperamos** ver ``tag:servidor``.
+5) Si ya tenía la etiqueta, revisa la ACL: ``ssh`` en el nivel principal del JSON (no dentro de ``acls``), ``dst`` con ``tag:servidor``, ``users`` con ``ubuntu`` y los cambios guardados.
+6) En GitHub: **Actions > Deploy Clase 5 > Re-run failed jobs**.
+
+**NOTA:** __Este arreglo es un parche sobre la máquina actual. Si más adelante la recreas con ``terraform apply``, usa un token con ``tag:servidor`` (paso 3.3) para no repetirlo.__
 
 ### 10) Probamos el resultado
 
