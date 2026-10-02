@@ -38,6 +38,12 @@ variable "ami_id" {
   default     = null
 }
 
+variable "modo_prueba" {
+  description = "true = para probar init/validate/plan sin cuenta de AWS (credenciales falsas, no consulta a AWS). apply NO funciona en este modo"
+  type        = bool
+  default     = false
+}
+
 variable "servicios" {
   description = <<-EOT
     Mapa de servicios a levantar. La clave es el nombre del servicio y cada

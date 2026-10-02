@@ -121,6 +121,8 @@ Bash (Linux / Mac / Git Bash):
 
 ``export TF_VAR_tailscale_auth_key="tskey-auth-XXXXXXXX"``
 
+**NOTA:** __¿Aún no tienes cuenta de AWS? Puedes probar hasta el ``plan`` sin credenciales: agrega ``"-var=modo_prueba=true" "-var=tailscale_auth_key=cualquier-cosa"`` al comando ``terraform plan`` de abajo y **esperamos** el mismo ``Plan: 3 to add``. El ``apply`` no funciona en ese modo, y los pasos 4 en adelante necesitan el servidor real.__
+
 Luego, desde la carpeta ``Clase 6``:
 
 ``cd infra``
@@ -129,11 +131,11 @@ Luego, desde la carpeta ``Clase 6``:
 
 **Esperamos:** ``Terraform has been successfully initialized!``
 
-``terraform plan -var-file=envs/clase6.tfvars``
+``terraform plan "-var-file=envs/clase6.tfvars"``
 
 **Esperamos:** ``Plan: 3 to add, 0 to change, 0 to destroy.``
 
-``terraform apply -var-file=envs/clase6.tfvars``
+``terraform apply "-var-file=envs/clase6.tfvars"``
 
 Escribimos ``yes``. **Esperamos:**
 
@@ -263,7 +265,7 @@ Para recuperar, deshacemos el último commit y subimos:
 
 DETEN LOS SERVICIOS. Desde ``Clase 6/infra`` (con la variable ``TF_VAR_tailscale_auth_key`` puesta en la consola):
 
-``terraform destroy -var-file=envs/clase6.tfvars``
+``terraform destroy "-var-file=envs/clase6.tfvars"``
 
 Escribimos ``yes``. **Esperamos:**
 
@@ -427,5 +429,7 @@ En la infraestructura, ``envs/clase5.tfvars`` pasó a ``envs/clase6.tfvars`` con
 **DOCKER COMPOSE (--force-recreate)** Opción que obliga a recrear los contenedores indicados aunque su configuración no haya cambiado.
 
 **IMAGEN / CONTENEDOR** La imagen es la plantilla con la app, el contenedor es esa imagen en ejecución. Ver Clase 1 y 2.
+
+**MODO_PRUEBA** Variable de nuestra plantilla. En ``true`` terraform usa credenciales falsas y no consulta a AWS, así que se puede hacer ``plan`` sin cuenta. No permite ``apply``. Ver Clase 5.
 
 **ESTADO (terraform.tfstate)** Archivo donde terraform anota qué creó. **No se borra, ni se sube al repositorio.** Ver Clase 5.

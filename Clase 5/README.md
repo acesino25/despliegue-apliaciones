@@ -313,9 +313,21 @@ Opcional pero recomendado, para revisar que no hay errores de escritura:
 
 **Esperamos:** ``Success! The configuration is valid.``
 
+### 5.1) Opcional: probar sin cuenta de AWS
+
+Si aún no tienes cuenta de AWS (o no quieres usarla todavía), puedes hacer todo **hasta el plan** sin credenciales. Para eso existe la variable ``modo_prueba``, que usa credenciales falsas y no consulta a AWS.
+
+``terraform plan "-var-file=envs/clase5.tfvars" "-var=modo_prueba=true" "-var=tailscale_auth_key=cualquier-cosa"``
+
+**Esperamos** ver ``Plan: 3 to add, 0 to change, 0 to destroy.`` Es el mismo resultado que en el paso 6.
+
+**NOTA:** __Con ``modo_prueba`` el ``apply`` NO funciona: no hay cuenta real detrás. Sirve para entender qué crearía terraform y comprobar que los archivos están bien escritos. Para crear el servidor de verdad se necesita la cuenta (paso 2).__
+
+Tampoco necesita el token real de TailScale: aquí ponemos cualquier texto.
+
 ### 6) Vemos qué va a crear (plan)
 
-``terraform plan -var-file=envs/clase5.tfvars``
+``terraform plan "-var-file=envs/clase5.tfvars"``
 
 **No crea nada todavía.** Solo muestra qué haría. Cada recurso aparece con un ``+`` (se creará). **Esperamos** ver al final, para el ejemplo de un solo servicio:
 
@@ -341,7 +353,7 @@ Si te aparece un error, léelo completo: suele indicar el archivo y la línea. L
 
 ### 7) Creamos la infraestructura (apply)
 
-``terraform apply -var-file=envs/clase5.tfvars``
+``terraform apply "-var-file=envs/clase5.tfvars"``
 
 Vuelve a mostrar el plan y **pregunta**:
 
@@ -459,11 +471,11 @@ Y finalmente abrimos en el navegador ``http://203.0.113.50`` donde veremos la we
 Esto es lo que diferencia esta clase de la Clase 4. Sin tocar ``main.tf`` ni ``variables.tf``:
 
 * Editamos ``envs/clase5.tfvars`` y agregamos un segundo servicio (ver el ejemplo del paso 4.5)
-* ``terraform plan -var-file=envs/clase5.tfvars``
+* ``terraform plan "-var-file=envs/clase5.tfvars"``
 
 **Esperamos** ver ``Plan: 3 to add, 0 to change, 0 to destroy.`` Es decir, **el servicio ``app`` no se toca**, solo se agrega el nuevo.
 
-* ``terraform apply -var-file=envs/clase5.tfvars`` y respondemos ``yes``
+* ``terraform apply "-var-file=envs/clase5.tfvars"`` y respondemos ``yes``
 
 Cambiar un valor que se puede modificar en caliente (por ejemplo, agregar un puerto a ``puertos_publicos``) aparece con ``~`` (se modifica). Cambiar el ``user_data_extra`` aparece con ``-/+`` (se destruye y se vuelve a crear: **Recreate**, con downtime).
 
@@ -471,7 +483,7 @@ Cambiar un valor que se puede modificar en caliente (por ejemplo, agregar un pue
 
 Cuando terminemos de probar, recordamos lo que dijimos al principio: DETEN LOS SERVICIOS.
 
-``terraform destroy -var-file=envs/clase5.tfvars``
+``terraform destroy "-var-file=envs/clase5.tfvars"``
 
 Pregunta ``Enter a value:`` y escribimos ``yes``. **Esperamos**:
 
@@ -557,6 +569,8 @@ y luego abrimos ``http://localhost``.
 
 **OUTPUT** Datos que terraform nos muestra al terminar (como la IP del servidor).
 
+**MODO_PRUEBA** Variable de nuestra plantilla. En ``true`` terraform usa credenciales falsas y no consulta a AWS, así que se puede hacer ``plan`` sin cuenta. No permite ``apply``.
+
 **.tfvars** Archivo donde se escriben los valores de las variables. Uno por cada despliegue.
 
 **MAPA (map)** Una lista donde cada elemento tiene un nombre. Nuestra variable ``servicios`` es un mapa: el nombre es la clave del servicio.
@@ -602,3 +616,113 @@ y luego abrimos ``http://localhost``.
 **VARIABLE DE ENTORNO** Valor que se le pasa a un programa desde fuera de su código. La usamos para el token de TailScale (``TF_VAR_...``) y para la conexión de la API a postgres.
 
 **API** Servicio que recibe pedidos, consulta la base de datos y devuelve información al frontend. Ver BACKEND y FRONTEND en la Clase 2.
+
+
+---
+
+## CHEAT SHEET: SERVICIOS DE AWS POR PATRÓN DE DISEÑO
+
+Lista rápida de qué servicios de AWS se usan para construir cada tipo de arquitectura. Entre paréntesis, el nombre del recurso en terraform (``aws_...``).
+
+### 1) Patrón de cómputo
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Servidor tradicional (VM)** | EC2, AMI, Elastic IP, Security Group | ``aws_instance``, ``aws_eip``, ``aws_security_group`` |
+| **Contenedores** | ECS, EKS, Fargate, ECR (registro de imágenes) | ``aws_ecs_cluster``, ``aws_ecs_service``, ``aws_eks_cluster``, ``aws_ecr_repository`` |
+| **Serverless (funciones)** | Lambda, API Gateway | ``aws_lambda_function``, ``aws_apigatewayv2_api`` |
+| **PaaS (sin manejar servidores)** | Elastic Beanstalk, App Runner, Lightsail | ``aws_elastic_beanstalk_environment``, ``aws_apprunner_service`` |
+| **Batch / procesamiento por lotes** | AWS Batch, Step Functions | ``aws_batch_job_definition``, ``aws_sfn_state_machine`` |
+
+### 2) Patrón de red y entrada de tráfico
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Red aislada** | VPC, Subnet, Internet Gateway, NAT Gateway, Route Table | ``aws_vpc``, ``aws_subnet``, ``aws_internet_gateway``, ``aws_nat_gateway``, ``aws_route_table`` |
+| **Firewall** | Security Group, Network ACL, WAF | ``aws_security_group``, ``aws_network_acl``, ``aws_wafv2_web_acl`` |
+| **Balanceo de carga** | ALB (HTTP), NLB (TCP), Target Group | ``aws_lb``, ``aws_lb_target_group``, ``aws_lb_listener`` |
+| **DNS y dominio** | Route 53, ACM (certificados HTTPS) | ``aws_route53_zone``, ``aws_route53_record``, ``aws_acm_certificate`` |
+| **CDN / borde** | CloudFront | ``aws_cloudfront_distribution`` |
+| **Conexión privada** | VPN, Direct Connect, VPC Peering, PrivateLink | ``aws_vpn_connection``, ``aws_vpc_peering_connection``, ``aws_vpc_endpoint`` |
+
+### 3) Patrón de alta disponibilidad y escalado
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Autoescalado** | Auto Scaling Group, Launch Template | ``aws_autoscaling_group``, ``aws_launch_template`` |
+| **Multi-AZ** | Subnets en varias zonas + ALB + RDS Multi-AZ | ``aws_subnet`` (``availability_zone``), ``aws_db_instance`` (``multi_az = true``) |
+| **Multi-región / failover** | Route 53 (health checks), S3 replication, Aurora Global | ``aws_route53_health_check``, ``aws_s3_bucket_replication_configuration`` |
+| **Despliegue sin downtime (Blue/Green, Canary)** | CodeDeploy, ALB con dos Target Groups | ``aws_codedeploy_deployment_group`` |
+
+### 4) Patrón de datos
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Base de datos relacional** | RDS (Postgres, MySQL), Aurora | ``aws_db_instance``, ``aws_rds_cluster`` |
+| **NoSQL clave-valor** | DynamoDB | ``aws_dynamodb_table`` |
+| **Caché** | ElastiCache (Redis, Memcached) | ``aws_elasticache_cluster`` |
+| **Almacenamiento de objetos / sitio estático** | S3 | ``aws_s3_bucket`` |
+| **Disco de servidor** | EBS | ``aws_ebs_volume`` |
+| **Archivos compartidos** | EFS | ``aws_efs_file_system`` |
+| **Búsqueda** | OpenSearch | ``aws_opensearch_domain`` |
+| **Data lake / analítica** | S3 + Glue + Athena, Redshift, Kinesis | ``aws_glue_catalog_database``, ``aws_athena_workgroup``, ``aws_redshift_cluster`` |
+| **Respaldos** | AWS Backup, snapshots | ``aws_backup_plan``, ``aws_db_snapshot`` |
+
+### 5) Patrón de mensajería y eventos (desacoplar)
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Cola (productor/consumidor)** | SQS | ``aws_sqs_queue`` |
+| **Publicación/suscripción (fan-out)** | SNS | ``aws_sns_topic``, ``aws_sns_topic_subscription`` |
+| **Bus de eventos** | EventBridge | ``aws_cloudwatch_event_bus``, ``aws_cloudwatch_event_rule`` |
+| **Streaming en tiempo real** | Kinesis, MSK (Kafka) | ``aws_kinesis_stream``, ``aws_msk_cluster`` |
+| **Orquestación de flujos** | Step Functions | ``aws_sfn_state_machine`` |
+| **Tareas programadas (cron)** | EventBridge Scheduler | ``aws_scheduler_schedule`` |
+
+### 6) Patrón de seguridad
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Identidad y permisos** | IAM (usuarios, roles, políticas), IAM Identity Center | ``aws_iam_role``, ``aws_iam_policy``, ``aws_iam_user`` |
+| **Autenticación de usuarios de la app** | Cognito | ``aws_cognito_user_pool`` |
+| **Secretos y configuración** | Secrets Manager, SSM Parameter Store | ``aws_secretsmanager_secret``, ``aws_ssm_parameter`` |
+| **Cifrado** | KMS | ``aws_kms_key`` |
+| **Detección de amenazas** | GuardDuty, Security Hub, Inspector | ``aws_guardduty_detector``, ``aws_securityhub_account`` |
+| **Auditoría** | CloudTrail, AWS Config | ``aws_cloudtrail``, ``aws_config_configuration_recorder`` |
+| **Acceso administrativo sin puerto 22** | SSM Session Manager (alternativa a TailScale) | ``aws_ssm_document``, rol con ``AmazonSSMManagedInstanceCore`` |
+
+### 7) Patrón de observabilidad
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Logs** | CloudWatch Logs | ``aws_cloudwatch_log_group`` |
+| **Métricas y alarmas** | CloudWatch Metrics / Alarms | ``aws_cloudwatch_metric_alarm`` |
+| **Dashboards** | CloudWatch Dashboards | ``aws_cloudwatch_dashboard`` |
+| **Trazas distribuidas** | X-Ray | ``aws_xray_sampling_rule`` |
+| **Alertas de costo** | AWS Budgets | ``aws_budgets_budget`` |
+
+### 8) Patrón de CI/CD e infraestructura como código
+
+| Patrón | Servicios | Recurso terraform |
+|---|---|---|
+| **Repositorio** | CodeCommit (o GitHub) | ``aws_codecommit_repository`` |
+| **Build** | CodeBuild | ``aws_codebuild_project`` |
+| **Pipeline** | CodePipeline | ``aws_codepipeline`` |
+| **Despliegue** | CodeDeploy | ``aws_codedeploy_app`` |
+| **Estado remoto de terraform** | S3 + DynamoDB (bloqueo) | ``aws_s3_bucket``, ``aws_dynamodb_table`` |
+| **IaC propio de AWS** | CloudFormation, CDK | ``aws_cloudformation_stack`` |
+
+### 9) Arquitecturas completas (qué combinar)
+
+| Arquitectura | Combinación de servicios |
+|---|---|
+| **Servidor único (esta clase)** | EC2 + Security Group + Elastic IP + (TailScale) |
+| **Web de 3 capas** | Route 53 → CloudFront → ALB → EC2/ASG → RDS (+ ElastiCache), todo en una VPC con subnets públicas y privadas |
+| **Sitio estático** | S3 + CloudFront + Route 53 + ACM |
+| **API serverless** | API Gateway + Lambda + DynamoDB + Cognito |
+| **Microservicios en contenedores** | ECR + ECS Fargate + ALB + RDS + Secrets Manager |
+| **Procesamiento asíncrono** | API → SQS → Lambda/ECS worker → S3/DynamoDB, con SNS para notificar |
+| **Orientada a eventos** | EventBridge + Lambda + Step Functions + SQS |
+| **Pipeline de datos** | Kinesis → S3 → Glue → Athena/Redshift |
+
+> **Tip:** para ubicar el nombre exacto de un recurso en terraform, busca en la documentación del provider ``registry.terraform.io/providers/hashicorp/aws`` el servicio y verás todos sus ``aws_...`` disponibles.

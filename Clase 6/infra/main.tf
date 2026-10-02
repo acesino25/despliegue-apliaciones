@@ -1,5 +1,5 @@
 data "aws_ami" "ubuntu" {
-  count       = var.ami_id == null ? 1 : 0
+  count       = var.ami_id == null && !var.modo_prueba ? 1 : 0
   most_recent = true
   owners      = ["099720109477"] # Canonical
 
@@ -10,7 +10,7 @@ data "aws_ami" "ubuntu" {
 }
 
 locals {
-  ami_id  = var.ami_id != null ? var.ami_id : data.aws_ami.ubuntu[0].id
+  ami_id  = var.ami_id != null ? var.ami_id : (var.modo_prueba ? "ami-00000000000000000" : data.aws_ami.ubuntu[0].id)
   prefijo = var.proyecto
 }
 
