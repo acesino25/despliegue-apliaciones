@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SERVIDOR: clase5-app   # nombre de la máquina en TailScale (proyecto-servicio)
+  SERVIDOR: clase5-app-1   # nombre de la máquina en TailScale (proyecto-servicio)
   DESTINO: clase5        # carpeta dentro de /home/ubuntu
 
 jobs:
